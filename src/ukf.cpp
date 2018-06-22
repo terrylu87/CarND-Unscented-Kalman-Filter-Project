@@ -15,7 +15,7 @@ const float EPSILON = 0.0001;
  */
 UKF::UKF() {
   // if this is false, laser measurements will be ignored (except during init)
-  use_laser_ = false;
+  use_laser_ = true;
 
   // if this is false, radar measurements will be ignored (except during init)
   use_radar_ = true;
@@ -32,10 +32,10 @@ UKF::UKF() {
         0, 0, 0, 0, 1;
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 30;
+  std_a_ = 1.5;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 30;
+  std_yawdd_ = 0.5;
   
   //DO NOT MODIFY measurement noise values below these are provided by the sensor manufacturer.
   // Laser measurement noise standard deviation position1 in m
@@ -69,7 +69,7 @@ UKF::UKF() {
   n_aug_ = 7;
 
   ///* Sigma point spreading parameter
-  lambda_ = 3 - n_aug_;
+  lambda_ = 3 - n_x_;
 
   ///* Weights of sigma points
   weights_ =  VectorXd(2*n_aug_+1);
@@ -128,7 +128,8 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
             */
             float px = meas_package.raw_measurements_[0]*cos(meas_package.raw_measurements_[1]);
             float py = meas_package.raw_measurements_[0]*sin(meas_package.raw_measurements_[1]);
-            x_ << px, py, 0, 0, 0;
+            float v = sqrt(px*px+py*py);
+            x_ << px, py, v, 0, 0;
         }
         else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
             /**
@@ -344,7 +345,7 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
     P_ = P_ - K*S*K.transpose();
 
     //NIS Lidar Update
-    NIS_laser_ = z_diff.transpose() * S.inverse() * z_diff;
+    NIS_lidar_ = z_diff.transpose() * S.inverse() * z_diff;
 }
 
 /**
@@ -390,7 +391,6 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
     z_pred.fill(0.0);
     for (int i=0; i < 2*n_aug+1; i++) {
         z_pred = z_pred + weights_(i) * Zsig.col(i);
-    }
 
     //innovation covariance matrix S
     MatrixXd S = MatrixXd(n_z,n_z);
@@ -407,9 +407,7 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
     }
 
     //add measurement noise covariance matrix
-    MatrixXd R = R_radar_;
-
-    S = S + R;
+    S = S + R_radar_;
 
     // 2. update state
     VectorXd z = meas_package.raw_measurements_;
