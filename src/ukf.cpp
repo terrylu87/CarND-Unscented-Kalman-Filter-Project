@@ -9,7 +9,7 @@ using std::vector;
 
 const float EPSILON = 0.0001;
 
-#define USE_UKF_FOR_LIDAR
+//#define USE_UKF_FOR_LIDAR
 /**
  * Initializes Unscented Kalman filter
  * This is scaffolding, do not modify
